@@ -1,0 +1,268 @@
+#blocker {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background-color:rgba(128,128,128,0.5);
+}
+#instructions{
+	height: 40%;
+	position:relative;
+	top:40%;
+	left:42%;
+	text-align:center;
+	font-family: 'Bree Serif', serif;
+	font-size:10px;
+}
+body{
+	margin:0px;
+}
+#stats{
+	position:fixed;
+	bottom:15px;
+	z-index: 5;
+}
+#lvl,#mes{
+	position:fixed;
+	left:10px;
+	font-size:35px;
+	z-index: 5;
+	font-family: 'Bree Serif', serif;
+	font-weight:800;
+	background-color:rgba(128,128,128,0.5);
+	padding-left:5px;
+	padding-right:5px;
+	border-radius:5px;
+}
+#btbar{
+	position:absolute;
+	bottom:1em;
+	width: 98%;
+	height: 55px;
+}
+
+.item{
+	position: relative;
+	float: left;
+	background-color: rgba(128,128,128,0.5);
+	bottom:0;
+	margin-left:0.5em;
+	padding-left:10px;
+	padding-right:10px;
+	padding-bottom:5px;
+	
+	border-radius:5px;
+	font-family: 'Bree Serif', serif;
+	font-size: 35px;
+	line-height:45px;
+	font-weight:800;
+}
+
+.item img{
+	height:25px;
+	margin-right: 7px;
+	margin-top:10px;
+}
+
+.item.time{
+	float:right;
+}
+#lvl{
+	top:50px;
+}
+#mes{
+	background-color:rgba(250,182,49,0.5);
+	top:10px;
+	left:40%;
+	padding-top:2px;
+}
+#mes p{
+	text-align:center;
+	border-radius:5px;
+	width:47px;
+	padding:5px;
+	padding-left:10px;
+	margin:auto;
+	margin-bottom:5px;
+	background-color:rgba(11,49,27,0.7);
+}
+#main {
+	position:fixed;
+	top:0px;
+	left:0px;
+	width:100%;
+	height:100%;
+}
+#rg{
+	position:relative;
+	z-index:2;
+	width:220px;
+	padding: 15px;
+	background:rgba(128,128,128,0.8);
+	font-family: 'Bree Serif', serif;
+	font-size: 18px;
+	border-radius:5px;
+}
+#rg p{
+	text-align:left;
+	margin-top: 0;
+}
+#rg input{
+	border-radius:5px;
+}
+
+#mbg{
+	position:absolute;
+	background-image:url(../texture/stone_3.png);
+	width:100%;
+	height:100%;
+}
+#content{
+	margin:auto;
+	margin-top:50px;
+	height:500px;
+	width:500px;
+	background:rgba(128,128,128,0.7);
+	padding:10px;
+	border-radius:5px;
+}
+
+.menuButton{
+	height:50px;
+	width:100px;
+}
+form{
+	margin:0;
+}
+.menuButton:hover,#ms:hover,#back:hover,#sb:hover,#mh:hover{
+  background-color: #19703e;
+}
+
+.menuButton:active,#ms:active,#back:active,#sb:active,#mh:active {
+  background-color: #145b32 ;
+  box-shadow: 0 5px #4a5758;
+  transform: translateY(4px);
+}
+.menuButton,#ms,#back,#sb,#mh{
+	text-align: center;
+	cursor: pointer;
+	font-size:20px;
+	color:#fff;
+	outline: none;
+	background-color: #0b311b;
+	border: none;
+	border-radius:5px;
+	box-shadow: 0 9px #4a5758;
+	font-family: 'Bree Serif', serif;
+	
+}
+#menu{
+	position:fixed;
+	right:10px;
+	top:10px;
+	background-color: #aaa;
+	color:#000;
+}
+#sound{
+	position:fixed;
+	right:10px;
+	top:10px;
+	background-color: #aaa;
+	color:#000;
+	font-size:30px;
+	
+}
+
+.attr{
+	width:300px;
+	height:30px;
+	font-size:30px;
+	font-family: 'Bree Serif', serif;
+	font-size: 24px;
+}
+
+#ms,#mh{
+	height:30px;
+	width:30px;
+}
+#content2 {
+	margin:auto;
+	margin-top:50px;
+	height:auto;
+	width:500px;
+	background:rgba(128,128,128,0.7);
+	padding:10px;
+	border-radius:5px;
+}
+#back{
+	position:relative;
+	left:200px;
+	height:50px;
+	width:100px;
+	margin-top:5px;
+	margin-bottom:5px;
+	font-size:20px;
+}
+.in{
+	width:210px;
+	font-family: 'Bree Serif', serif;
+}
+#sb{
+	padding:5px;
+	font-size:19px;
+	width:100px;
+	margin: auto;
+    display: block;
+}
+#table{
+	text-align: center;
+	border: 2px solid #0b311b;
+	border-radius:5px;
+	font-family: 'Ubuntu', sans-serif;
+}
+#fps{
+	position:fixed;
+	top:10px;
+	left:10px;
+	font-size:26px;
+	z-index: 5;
+	font-family: 'Bree Serif', serif;
+	background-color:rgba(160,46,40,0.5);
+	padding-left:5px;
+	padding-right:5px;
+	border-radius:5px;
+}
+#gun{
+	position:fixed;
+	bottom:-5px;
+	right:0px;
+	width:500px;
+}
+
+
+#logos{
+	position:relative;
+	top:80;
+	left: 150px;
+	z-index:1;
+	width:10px;
+	height:10px;
+	-webkit-box-shadow: 0x 0px 300px 200px rgba(153,44,44,1);
+	-moz-box-shadow: 0px 0px 300px 200px rgba(153,44,44,1);
+	box-shadow: 0px 0px 300px 200px rgba(153,44,44,1);
+}
+#aaa{
+	position:relative;
+	z-index:2;
+	width:500px;
+}
+#blood{
+	position:fixed;
+	z-index:6;
+	width:100%;
+	height:100%;
+	background-color:rgba(255,0,0,0.5);
+	display:none;
+}
+#price{
+	font-family: 'Bree Serif', serif;
+}

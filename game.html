@@ -1,0 +1,912 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<!--CSS-->
+		<link rel="stylesheet" href="css/styles.css">
+		<link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+		<!--FONTS-->
+		<link href="https://fonts.googleapis.com/css?family=Rubik+Mono+One" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Bree+Serif" rel="stylesheet">
+		<!--LIBS-->
+		<script src="js/three.min.js"></script>
+		<script src="js/PointerLockControls.js"></script>
+		<script src="js/jquery-3.1.1.min.js"></script>
+		<!--LOGO-->
+		<link rel="shortcut icon" href="img/logo.ico" />
+		<!--TITLE-->
+		<title>Game</title>
+	</head>
+<body>
+<img id="gun" src="texture/torch.gif">
+<div id="blocker" style="display: -webkit-box;">
+			<div id="instructions">
+				 <span style="font-size:50px">Click to play</span>
+				 <br>
+				 <h2>(W, A, S, D = Move, SPACE = Jump,<br> MOUSE = Look around)</h2>
+			</div>
+		</div>
+<div id="fps"></div>
+
+<div id="btbar">
+	<div class="item hp">
+		<div style="float:left;"><img src="texture/heart.gif"></div>
+		<div style="float:left;" id="hp">HP:1</div>
+	</div>
+
+	<div class="item gl">
+		<div style="float:left;"><img src="texture/moin.gif"></div>
+		<div style="float:left;" id="gl">GOLD:0</div>
+	</div>
+	
+</div>
+<div id="lvl"></div>
+<div id="mes"></div>
+<div id="blood"></div>
+<button onclick="play()" class="menuButton" id="sound" style="display:none;"><i id="mute" class="fa fa-volume-up"></i></button>
+
+<script type="text/javascript">	
+			//fps counter
+			var lastCalledTime;
+			var fps;
+			var fpscounter = setInterval(fps, 1000);
+			function fps(){
+				document.getElementById("fps").innerHTML ="FPS :"+Math.round(fps,0);
+			};
+			//Global Var list
+			var camera, scene, renderer;
+			var geometry, material, mesh;
+			var controls;
+			var ElementsData,bosslevel;
+			var objects = [];
+			var chests;
+			var flag_hp;
+			var audio;
+			//blocker 'Click to play'
+			var blocker = document.getElementById( 'blocker' );
+			var instructions = document.getElementById( 'instructions' );
+			var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+			if ( havePointerLock ) {
+				var element = document.body;
+				var pointerlockchange = function ( event ) {
+					if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
+						controlsEnabled = true;
+						controls.enabled = true;
+						blocker.style.display = 'none';
+					} else {
+						controls.enabled = false;
+						blocker.style.display = '-webkit-box';
+						blocker.style.display = '-moz-box';
+						blocker.style.display = 'box';
+						instructions.style.display = '';
+					}
+				};
+				var pointerlockerror = function ( event ) {
+					instructions.style.display = '';
+				};
+				// Hook pointer lock state change events
+				document.addEventListener( 'pointerlockchange', pointerlockchange, false );
+				document.addEventListener( 'mozpointerlockchange', pointerlockchange, false );
+				document.addEventListener( 'webkitpointerlockchange', pointerlockchange, false );
+				document.addEventListener( 'pointerlockerror', pointerlockerror, false );
+				document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
+				document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
+				instructions.addEventListener( 'click', function ( event ) {
+					instructions.style.display = 'none';
+					// Ask the browser to lock the pointer
+					element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
+					element.requestPointerLock();
+				}, false );
+			} else {
+				instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+			}
+			//GLOBAL Var list
+			var hp=Math.round(localStorage.getItem("hp"),0);
+			var speed=Math.round(localStorage.getItem("speed"),0);
+			var gl=Math.round(localStorage.getItem("gold"),0);
+			var nelem=Math.round(localStorage.getItem("lvl"),0);
+			var tmpbosslvl = Math.round(localStorage.getItem("boss"),0);
+			if(tmpbosslvl==0){
+				bosslevel=1;
+			}else{
+				bosslevel=0;
+			}
+			var dlevel=0;
+			var nenemy;
+			var t=30;
+			var tl;
+			var s;
+			var mesh4;
+			var controlsEnabled = false;
+			var keyuse = false;
+			var bosskill=false;
+			var moveForward = false;
+			var moveBackward = false;
+			var moveLeft = false;
+			var moveRight = false;
+			var prevTime = performance.now();
+			var velocity = new THREE.Vector3();
+			//init call
+			init();
+			//blood screen
+			function blood(){
+				document.getElementById("blood").style.display = "block";
+				var bs = setTimeout(function(){document.getElementById("blood").style.display = "none";}, 200);
+			}
+			function play(){
+				if(audio.paused){
+					audio.play();
+					document.getElementById("mute").classList.remove('fa-volume-off');
+					document.getElementById("mute").classList.add('fa-volume-up');
+				}else{
+					audio.pause();
+					document.getElementById("mute").classList.remove('fa-volume-up');
+					document.getElementById("mute").classList.add('fa-volume-off');
+				}
+				
+			}			
+			function c_once(fn, context) { 
+				var result;
+				return function() { 
+					if (fn) {
+						result = fn.apply(context || this, arguments);
+						fn = null;
+					}
+					return result;
+				};
+			}
+			function upd_data(){				
+				localStorage.setItem("lvl",dlevel);
+				if(bosslevel==1){
+					localStorage.setItem("boss",5);
+				}else{
+					localStorage.setItem("boss",--tmpbosslvl);
+				}				
+				window.location.href = "game.html";
+			}
+			var once_upd = c_once(upd_data);
+			
+			function init() {
+				//TEXTURES
+				//fire texture 
+				var fireTexture = new THREE.ImageUtils.loadTexture( 'texture/fire.png' );
+					// a texture with 10 frames arranged horizontally, display each for 75 millisec
+					annie4 = new TextureAnimator( fireTexture, 8, 1, 8, 150 ); 
+					var fireMaterial = new THREE.MeshLambertMaterial( { transparent:true,map: fireTexture , side:THREE.DoubleSide } );
+				//boss FIREBALL texture 
+				var fireballTexture = new THREE.ImageUtils.loadTexture( 'texture/fireball.png' );
+					// a texture with 10 frames arranged horizontally, display each for 75 millisec
+					annie3 = new TextureAnimator( fireballTexture, 4, 1, 4, 150 ); 
+					var fireballMaterial = new THREE.MeshLambertMaterial( { transparent:true,map: fireballTexture , side:THREE.DoubleSide } );
+				//boss anim texture 
+				var bossTexture = new THREE.ImageUtils.loadTexture( 'texture/bossanim.png' );
+					// a texture with 10 frames arranged horizontally, display each for 75 millisec
+					annie2 = new TextureAnimator( bossTexture, 11.01, 1, 11, 200 ); 
+					var bossMaterial = new THREE.MeshLambertMaterial( { transparent:true,map: bossTexture , side:THREE.DoubleSide } );
+					
+				//enemy anim texture
+					var runnerTexture = new THREE.ImageUtils.loadTexture( 'texture/enemyanim.png' );
+					// a texture with 10 frames arranged horizontally, display each for 75 millisec
+					annie = new TextureAnimator( runnerTexture, 4, 1.01, 4, 150 ); 
+					var runnerMaterial = new THREE.MeshLambertMaterial( { transparent:true,map: runnerTexture } );
+				//LOADER
+				var textureLoader =new THREE.TextureLoader();
+				//wall texture
+				var wallTexture = new textureLoader.load("texture/stone_3.png");
+				wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+				wallTexture.repeat.set( 2, 2);
+				//top-bottom texture
+				var topTexture = new textureLoader.load("texture/ground_2.png");
+				topTexture.wrapS = topTexture.wrapT = THREE.RepeatWrapping;
+				var bottTexture = new textureLoader.load("texture/dirt.png");
+				bottTexture.wrapS = bottTexture.wrapT = THREE.RepeatWrapping;
+				//finish texture
+				var finishTexture = new textureLoader.load("texture/finish.png");
+				//chest texture
+				var chestTextureTBB = new textureLoader.load("texture/side.png");
+				var chestTextureF = new textureLoader.load("texture/front.png");
+				var chestTextureLR = new textureLoader.load("texture/side2.png");
+				//camera - scene
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 200 );
+				scene = new THREE.Scene();
+				//scene.fog = new THREE.Fog( 0x000000,0, 100 );
+				//point light
+				function createLight( color , intensity, distance) {
+					var pointLight = new THREE.PointLight( color, intensity, distance );
+					pointLight.castShadow = true;
+					pointLight.shadow.camera.near = 1;
+					pointLight.shadow.camera.far = 200;
+					// pointLight.shadowCameraVisible = true;
+					pointLight.shadow.bias = 1;
+					var geometry = new THREE.SphereGeometry( 0.1, 0.1, 0.1 );
+					var material = new THREE.MeshBasicMaterial( { color: color ,transparent:true,opacity:0} );
+					var sphere = new THREE.Mesh( geometry, material );
+					pointLight.add( sphere );
+					return pointLight
+				}
+				pointLight = createLight( 0xfab631 , 4, 40 ); 
+				scene.add( pointLight );
+				//
+				controls = new THREE.PointerLockControls( camera );
+				scene.add( controls.getObject() );
+				controls.getObject().position.x += 30;
+
+				var onKeyDown = function ( event ) {
+					switch ( event.keyCode ) {
+						case 38: // up
+						case 87: // w
+							moveForward = true;
+							break;
+						case 37: // left
+						case 65: // a
+							moveLeft = true; 
+							break;
+						case 40: // down
+						case 83: // s
+							moveBackward = true;
+							break;
+						case 39: // right
+						case 68: // d
+							moveRight = true;
+							break;
+						case 32: // space
+							if ( canJump === true ) velocity.y += 200;
+							canJump = false;
+							break;
+					}
+				};
+				var onKeyUp = function ( event ) {
+					switch( event.keyCode ) {
+						case 38: // up
+						case 87: // w
+							moveForward = false;
+							break;
+						case 37: // left
+						case 65: // a
+							moveLeft = false;
+							break;
+						case 40: // down
+						case 83: // s
+							moveBackward = false;
+							break;
+						case 39: // right
+						case 68: // d
+							moveRight = false;
+							break;
+					}
+				};
+				document.addEventListener( 'keydown', onKeyDown, false );
+				document.addEventListener( 'keyup', onKeyUp, false );
+				//character
+				var cubeGeometry = new THREE.CubeGeometry(10,10,10,2,2,2);
+				var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false ,transparent: true, opacity: 0 
+				} );
+				MovingCube = new THREE.Mesh( cubeGeometry, wireMaterial );
+				MovingCube.position.set(0, 0, 0);
+				scene.add( MovingCube );	
+				// objects
+				var widthw=29;
+				var heightw=30;
+				var l=0;
+				var d=0;
+				//chest material
+					var cubeMaterialArray = [];
+					// order to add materials: x+,x-,y+,y-,z+,z-
+					cubeMaterialArray.push( new THREE.MeshLambertMaterial( { color: 0xffffff ,map:chestTextureLR} ) );
+					cubeMaterialArray.push( new THREE.MeshLambertMaterial( { color: 0xffffff ,map:chestTextureLR} ) );
+					cubeMaterialArray.push( new THREE.MeshLambertMaterial( { color: 0xffffff ,map:chestTextureTBB} ) );
+					cubeMaterialArray.push( new THREE.MeshLambertMaterial( { color: 0xffffff ,map:chestTextureTBB} ) );
+					cubeMaterialArray.push( new THREE.MeshLambertMaterial( { color: 0xffffff ,map:chestTextureF} ) );
+					cubeMaterialArray.push( new THREE.MeshLambertMaterial( { color: 0xffffff ,map:chestTextureF} ) );
+					var cubeMaterials = new THREE.MultiMaterial( cubeMaterialArray );
+				//lvl				
+				if (bosslevel==0){
+					//audio = new Audio('audio/soundmain.m4a');
+					//audio.play();
+					//audio.loop=true;
+					//audio.volume = 0;
+					normallvl();
+					document.getElementById("mes").innerHTML = "You need to find a key";
+				}else{
+					//audio = new Audio('audio/soundboss.m4a');
+					//audio.play();
+					//audio.loop=true;
+					//audio.volume = 0;
+					hemilight = new THREE.HemisphereLight( 0x993333, 0x993333, 2 );
+					scene.add( hemilight );
+					
+					document.getElementById("mes").innerHTML = "You need to survive :"+ '<p id="timer">0</p> ';
+					heightw=30;
+					ElementsData = nelem;
+					nelem=3;
+
+					boss =new THREE.Mesh(new THREE.PlaneGeometry(20,20),bossMaterial);
+					boss.position.set((((nelem+2)*widthw)/2),10,(((nelem+2)*widthw)/2));
+					scene.add(boss);
+					boss.name="boss";
+					objects.push(boss);
+					
+					//
+					if(bosskill==false){
+						s = setInterval(spam, 2200);
+						
+						function spam(){
+							for(i=0;i<8;i++){
+								window['ball'+i]= new THREE.Mesh(new THREE.PlaneGeometry(10,5),fireballMaterial);
+								scene.add(window['ball'+i]);
+								window['ball'+i].position.set(boss.position.x,5,boss.position.z);
+								window['ball'+i].name="enemy";
+								objects.push(window['ball'+i]);
+								d = setTimeout(del, 2100);			
+							};
+						};
+						function del(){
+							for(i=0;i<8;i++){
+								window['ball'+i].position.y = -30;
+							};
+						};
+					};
+					tl = setInterval(tll, 1000);
+					function tll(){
+						t-=1;
+					};	
+					
+				};
+				//
+				bottTexture.repeat.set( nelem*3, nelem*3 );
+				topTexture.repeat.set( nelem*5, nelem*5 );
+				//
+				nenemy=Math.round(nelem/2 , 1);
+				//KEY
+					
+					var loader = new THREE.JSONLoader();
+						loader.load('model/key2.json',function(geometry){
+							mesh4 =new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color:0xad6903}));
+							mesh4.name="key";
+							objects.push(mesh4);
+							var pkx=Math.random()*(widthw*(nelem+1))+5;
+							var pkz=Math.random()*(widthw*(nelem+1))+5;		
+							mesh4.rotation.x += -Math.PI/2;
+							if (bosslevel==1){
+								mesh4.position.set(boss.position.x,25,boss.position.z);
+							}else{
+								mesh4.position.set(pkx,7,pkz);
+							}
+							scene.add(mesh4);
+							animate();
+						});
+				//
+				
+					
+				function normallvl(){
+					var loader = new THREE.JSONLoader();
+					loader.load('model/wall.json',function (geometry){
+					
+					for(var i=0;i<nelem;i++){				
+						l+=widthw;
+						d=0;
+						for(var j=0;j<nelem+1;j++){
+							var r = Math.floor(Math.random()*10);
+							if(r==1 || r==9){
+								//chest
+								r=0;
+								r = Math.floor(Math.random()*10);
+								if(r==5){
+									mesh7=  new THREE.Mesh(new THREE.CubeGeometry(10,5,5),cubeMaterials);
+									mesh7.position.y = 2.5;
+									mesh7.position.x =  l+(widthw/2)+7;
+									mesh7.rotation.y= Math.PI/2;
+									scene.add(mesh7);
+									mesh7.position.z  = d+(widthw/2)
+									mesh7.name="chest";
+									objects.push(mesh7);
+									chests+=1;
+								};
+								//
+								wall =new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color:0xffffff,map: wallTexture}));
+								wall.scale.set(5,3,3);
+								wall.castShadow = true;
+								wall.receiveShadow = true;
+								wall.position.z = d+(widthw/2);				
+								wall.position.y = 0;
+								wall.position.x = l+(widthw/2);
+								scene.add(wall);
+								objects.push( wall );
+								d+=widthw;
+							}else{
+								d+=widthw;
+							};
+						};
+					};
+
+					l=0;
+					d=0;
+					for(var i=0;i<nelem+1;i++){
+						l+=widthw;
+						d=1.5;
+						for(var j=0;j<nelem;j++){
+							var g = Math.floor(Math.random()*10);
+							if( g==1 || g==9){
+								wall2 =new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color:0xffffff,map: wallTexture}));
+								wall2.scale.set(5,3,3);
+								wall2.castShadow = true;
+								wall2.receiveShadow = true;
+								wall2.position.z = d+widthw;				
+								wall2.position.y = 0;
+								wall2.position.x = l;
+								wall2.rotation.y = Math.PI/2;
+								scene.add(wall2);
+								objects.push( wall2 );
+								d+=widthw;
+							}else{
+								d+=widthw;
+							};
+						};
+					};
+					});	
+				};
+				l=0;
+				d=-widthw/2;
+				
+				var finish = Math.floor(Math.random()*4)+1;
+				var pos = Math.floor(Math.random()*(nelem+2));				
+				
+				for (var i=0;i<nelem+2;i++){
+					if(finish==1&&pos==i){
+						//finish
+						mesh3 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,widthw),new THREE.MeshLambertMaterial({color:0xaaaaaa , map:finishTexture }));
+						mesh3.position.z = d+(widthw/2);				
+						mesh3.position.y = (heightw/2);
+						mesh3.position.x = -(widthw/2)+.5;
+						scene.add(mesh3);
+						mesh3.name="finish";
+						objects.push(mesh3);
+					}else{
+						mesh2 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,1),new THREE.MeshLambertMaterial({color:0xaaaaaa ,map:wallTexture}));
+						mesh2.position.z = d+(widthw/2)				
+						mesh2.position.y = (heightw/2);
+						mesh2.position.x = 0;
+						mesh2.rotation.y = Math.PI/2;
+						scene.add(mesh2);
+						objects.push( mesh2 );
+						if(bosslevel==1){
+							fire =new THREE.Mesh(new THREE.PlaneGeometry(10,15),fireMaterial);	
+							scene.add(fire);
+							fire.position.set(mesh2.position.x+2,7.5,mesh2.position.z);
+							fire.rotation.y = Math.PI/2;
+						}
+					}
+					d+=widthw;
+				};
+				
+				d=-widthw/2;
+				for (var i=0;i<nelem+2;i++){
+					if(finish==2&&pos==i){
+						//finish
+						mesh3 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,widthw),new THREE.MeshLambertMaterial({color:0xffffff , map:finishTexture }));
+						mesh3.position.z = d+(widthw/2);				
+						mesh3.position.y = (heightw/2);
+						mesh3.position.x = (widthw*(nelem+2))+(widthw/2)-.5;
+						scene.add(mesh3);
+						mesh3.name="finish";
+						objects.push(mesh3);
+					}else{
+						mesh2 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,1),new THREE.MeshLambertMaterial({color:0xffffff ,map:wallTexture}));
+						mesh2.position.z = d+(widthw/2);				
+						mesh2.position.y = (heightw/2);
+						mesh2.position.x = widthw*(nelem+2);
+						mesh2.rotation.y = Math.PI/2;
+						scene.add(mesh2);
+						objects.push( mesh2 );
+						if(bosslevel==1){
+							fire =new THREE.Mesh(new THREE.PlaneGeometry(10,15),fireMaterial);	
+							scene.add(fire);
+							fire.position.set(mesh2.position.x-2,7.5,mesh2.position.z);
+							fire.rotation.y = Math.PI/2;
+						}
+					}
+					d+=widthw;
+				};
+	
+				d=0;
+				for(var i=0;i<nelem+2;i++){
+					if(finish==3&&pos==i){
+						//finish
+						mesh3 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,widthw),new THREE.MeshLambertMaterial({color:0xffffff , map:finishTexture }));
+						mesh3.position.z = (widthw*(nelem+1.5))+(widthw/2)-.5;				
+						mesh3.position.y = (heightw/2);
+						mesh3.position.x = d+(widthw/2);
+						scene.add(mesh3);
+						mesh3.name="finish";
+						objects.push(mesh3);
+					}else{
+						mesh2 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,1),new THREE.MeshLambertMaterial({color:0xffffff ,map:wallTexture}));
+						mesh2.position.z = widthw*(nelem+1.5);				
+						mesh2.position.y = (heightw/2);
+						mesh2.position.x = d+(widthw/2);
+						scene.add(mesh2);
+						objects.push( mesh2 );
+						if(bosslevel==1){
+							fire =new THREE.Mesh(new THREE.PlaneGeometry(10,15),fireMaterial);	
+							scene.add(fire);
+							fire.position.set(mesh2.position.x,7.5,mesh2.position.z-2);
+						}
+					}
+				d+=widthw;
+				};
+
+				d=0;
+				for(var i=0;i<nelem+2;i++){
+					if(finish==4&&pos==i){
+						//finish
+						mesh3 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,widthw),new THREE.MeshLambertMaterial({color:0xffffff , map:finishTexture }));
+						mesh3.position.z = -widthw/2-(widthw/2)+.5;				
+						mesh3.position.y = (heightw/2);
+						mesh3.position.x = d+(widthw/2);
+						scene.add(mesh3);
+						mesh3.name="finish";
+						objects.push(mesh3);
+					}else{
+						mesh2 = new THREE.Mesh(new THREE.CubeGeometry(widthw,heightw,1),new THREE.MeshLambertMaterial({color:0xffffff ,map:wallTexture}));
+						mesh2.position.z = -widthw/2;				
+						mesh2.position.y = (heightw/2);
+						mesh2.position.x = d+(widthw/2);
+						scene.add(mesh2);
+						objects.push( mesh2 );
+						if(bosslevel==1){
+							fire =new THREE.Mesh(new THREE.PlaneGeometry(10,15),fireMaterial);	
+							scene.add(fire);
+							fire.position.set(mesh2.position.x,7.5,mesh2.position.z+2);
+						}
+					}
+				d+=widthw;
+				};
+				
+						
+				// floor
+				
+				geometry = new THREE.PlaneGeometry( widthw*(nelem+2), widthw*(nelem+2));
+				geometry.rotateX( - Math.PI / 2 );
+				mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({color:0xffffff ,map:topTexture}) );	
+				mesh.position.set( (widthw*(nelem+2))/2,0,(widthw*(nelem+1))/2);
+				mesh.receiveShadow = true;
+				scene.add(mesh);
+				geometry = new THREE.PlaneGeometry( widthw*(nelem+2), widthw*(nelem+2));
+				geometry.rotateX( Math.PI / 2 );
+				mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({color:0xffffff ,map:bottTexture}) );	
+				mesh.position.set( (widthw*(nelem+2))/2,heightw,(widthw*(nelem+1))/2);
+				scene.add(mesh);
+				mesh.receiveShadow = true;
+				
+				// enemys
+				for(i=0;i<nenemy;i++){
+					window['enemy'+i] = new THREE.Mesh(new THREE.CubeGeometry(11,0.1,11),new THREE.MeshBasicMaterial({color: 0xff0000, wireframe:false ,transparent: true,opacity:0}) );
+					window['enemy_a'+i]= new THREE.Mesh(new THREE.PlaneGeometry(15,15),runnerMaterial);
+					window['enemy'+i].castShadow = true;
+					window['enemy'+i].receiveShadow = true;
+					scene.add(window['enemy'+i]);
+					scene.add(window['enemy_a'+i]);
+					window['enemy'+i].name="enemy";
+					objects.push(window['enemy'+i]);
+					var p1x = Math.floor(Math.random()*((widthw*nelem)-10));
+					var p1z = Math.floor(Math.random()*((widthw*nelem)-10));
+					if(p1x<10)p1x+=5;
+					if(p1z<10)p1z+=5;
+					window['enemy'+i].position.set(p1x,0,p1z);
+				};
+			
+				renderer = new THREE.WebGLRenderer();
+				renderer.setClearColor( 0x000000);
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.BasicShadowMap;
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				window.addEventListener( 'resize', onWindowResize, false );
+				
+				if (bosslevel==1){
+					document.getElementById("lvl").innerHTML = "LVL :BOSS";
+				}else{
+					document.getElementById("lvl").innerHTML = "LVL :"+nelem;
+				};
+				
+				console.log("Map Size : "+ widthw*(nelem+2));
+				
+				console.log("N Enemies : "+ nenemy);
+				console.log("N Chests : "+ chests);
+			}
+			
+			
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+			//enemy dir
+			for(i=0;i<nenemy;i++){
+				window['directionenemy'+i]=1;
+			}
+			//ANIMATE//
+			function animate() {
+				requestAnimationFrame( animate );
+				//fps
+				if(!lastCalledTime) {
+					lastCalledTime = Date.now();
+					fps = 0;
+					return;
+				}  
+				delta = (Date.now() - lastCalledTime)/1000;
+				lastCalledTime = Date.now();
+				fps = 1/delta;
+				//
+				document.getElementById("hp").innerHTML = "HP :"+Math.floor(hp);
+				document.getElementById("gl").innerHTML = "GOLD :"+Math.floor(gl);
+				if (bosslevel==1 && t>0)document.getElementById("timer").innerHTML = t;
+				//
+				if(t<=0){
+					document.getElementById("mes").innerHTML = "You need to find a key";
+					clearInterval(tl);
+					clearInterval(s);
+					bosskill=true;
+					boss.position.y=-30;
+					mesh4.position.y=7;
+					scene.remove(hemilight);
+				};
+				//key rotation
+				mesh4.rotation.z += 0.02;
+	
+				//arrow = new THREE.ArrowHelper( camera.getWorldDirection(), camera.getWorldPosition(), 100, Math.random() * 0xffffff );
+				//scene.add( arrow );
+				MovingCube.position.copy(controls.getObject().position);
+				pointLight.position.copy(controls.getObject().position);
+				MovingCube.position.y=5;
+				for(i=0;i<nenemy;i++){
+					window['originPointEnemy'+i]=window['enemy'+i].position.clone();
+					window['enemy_a'+i].position.copy(window['enemy'+i].position);
+					window['enemy_a'+i].position.y=7.5;
+				};
+				var originPoint = MovingCube.position.clone();
+
+				//
+
+				
+				if ( controlsEnabled ) {
+					
+					var time = performance.now();
+					var delta = ( time - prevTime ) / 1000;
+
+					velocity.x -= velocity.x * 10.0 * delta;
+					velocity.z -= velocity.z * 10.0 * delta;
+					
+					velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+
+					if ( moveForward ) velocity.z -= speed * delta;
+					if ( moveBackward ) velocity.z += speed * delta;
+      
+					if ( moveLeft ) velocity.x -= speed * delta;
+					if ( moveRight ) velocity.x += speed * delta;
+
+					for(var vertexIndex = 0;vertexIndex < MovingCube.geometry.vertices.length; vertexIndex++){
+						var localVertex = MovingCube.geometry.vertices[vertexIndex].clone();
+						var globalVertex = localVertex.applyMatrix4( MovingCube.matrix );
+						var directionVector = globalVertex.sub( MovingCube.position );
+						
+						var ray = new THREE.Raycaster( originPoint, directionVector.clone().normalize() );
+						var collisionResults = ray.intersectObjects( objects );
+						if ( collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() ) {
+							if (collisionResults[0].object.name=="key"){
+								keyuse= true;
+								if(bosslevel==0)$("#mes").css('display', 'none');
+								scene.remove(mesh4);
+							}else if(collisionResults[0].object.name=="finish" && keyuse==true){
+								controls.getObject().position.z =controls.getObject().position.z -0.2;
+								velocity.x = 0;
+								velocity.z = 0;
+								if(bosslevel==1&&bosskill==true){																		
+									nelem = ElementsData;
+									dlevel=nelem+1;
+									once_upd();									
+								}else{
+																		
+									dlevel=nelem+1;
+									once_upd();																		
+								}
+									
+									
+								//
+							}else if(collisionResults[0].object.name=="chest"){
+								gl =gl+ Math.floor(Math.random()*100);
+								collisionResults[0].object.position.y = -15;
+							}else if(collisionResults[0].object.name=="enemy" || collisionResults[0].object.name=="boss"){
+								hp -= .2;
+								blood();
+								console.log(collisionResults[0].object.name)
+								if(!flag_hp && hp<1){
+									flag_hp = true;
+									$.post('updatedeath.php', {death: 1});
+									location.reload(true);
+								};
+								velocity.x = 0;
+								velocity.z = 0;
+								if(directionVector.x < 0){
+								controls.getObject().position.x +=1;
+								}else{
+								controls.getObject().position.x -=1;
+								};
+								if(directionVector.z < 0){
+								controls.getObject().position.z +=1;
+								}else{
+								controls.getObject().position.z -=1;
+								}
+							}else{
+								velocity.x = 0;
+								velocity.z = 0;
+								if(directionVector.x < 0){
+								controls.getObject().position.x +=0.1;
+								}else{
+								controls.getObject().position.x -=0.1;
+								};
+								if(directionVector.z < 0){
+								controls.getObject().position.z +=0.1;
+								}else{
+								controls.getObject().position.z -=0.1;
+								}
+							};
+							
+						};
+					}
+					//
+					if ( bosslevel==1 && bosskill==false){
+						boss.rotation.y = controls.getObject().rotation.y;
+						if (typeof ball0 !== 'undefined') {
+							for(i=0;i<8;i++){
+						window['ball'+i].rotation.y= 
+						controls.getObject().rotation.y;
+						};
+						for(i=0;i<8;i++){
+							if(i==0)window['ball'+i].position.z -= 0.7;
+							if(i==1){
+								window['ball'+i].position.z -= 0.7;
+								window['ball'+i].position.x -= 0.7;
+							};
+							if(i==2)window['ball'+i].position.x -= 0.7;
+							if(i==3){
+								window['ball'+i].position.z += 0.7;
+								window['ball'+i].position.x -= 0.7;
+							};
+							if(i==4)window['ball'+i].position.z += 0.7;
+							if(i==5){
+								window['ball'+i].position.z += 0.7;
+								window['ball'+i].position.x += 0.7;
+							};
+							if(i==6)window['ball'+i].position.x += 0.7;
+							if(i==7){
+								window['ball'+i].position.z -= 0.7;
+								window['ball'+i].position.x += 0.7;
+							};
+							window['ball'+i].position.y -= 0.05;
+						};
+						};
+					}
+
+					//enemys moves
+					for(i=0;i<nenemy;i++){
+						for(var vertexIndex = 0;vertexIndex < window['enemy'+i].geometry.vertices.length; vertexIndex++){
+							window['localVertexEnemy'+i] = window['enemy'+i].geometry.vertices[vertexIndex].clone();
+							window['globalVertexEnemy'+i] = window['localVertexEnemy'+i].applyMatrix4( window['enemy'+i].matrix );
+							window['directionVectorEnemy'+i]= window['globalVertexEnemy'+i].sub( window['enemy'+i].position );
+							window['rayEnemy'+i]= new THREE.Raycaster( window['originPointEnemy'+i], window['directionVectorEnemy'+i].clone().normalize() );
+							window['collisionResultsEnemy'+i]= window['rayEnemy'+i].intersectObjects( objects );
+							if ( window['collisionResultsEnemy'+i].length > 0 && window['collisionResultsEnemy'+i][0].distance < window['directionVectorEnemy'+i].length() ) {
+									
+									if(window['directionVectorEnemy'+i].x < 0){
+									window['enemy'+i].position.x +=0.2;
+									window['directionenemy'+i] = Math.floor(Math.random() * 4) + 1;
+
+							
+									}else{
+									window['enemy'+i].position.x -=0.2;
+									window['directionenemy'+i] = Math.floor(Math.random() * 4) + 1;
+									
+									};
+									if(window['directionVectorEnemy'+i].z < 0){
+									window['enemy'+i].position.z +=0.2;
+									window['directionenemy'+i] = Math.floor(Math.random() * 4) + 1;
+									
+									}else{
+									window['enemy'+i].position.z -=0.2;
+									window['directionenemy'+i] = Math.floor(Math.random() * 4) + 1;
+									}
+								
+							};
+						};
+						if (window['directionenemy'+i]==1){
+							window['enemy'+i].position.x += 0.4;
+							window['enemy'+i].position.z += 0.02;
+							
+						};
+						if (window['directionenemy'+i]==2){
+							window['enemy'+i].position.x -= 0.4;
+							window['enemy'+i].position.z -= 0.02;
+							;
+						};
+						if (window['directionenemy'+i]==3){
+							window['enemy'+i].position.z += 0.4;
+							window['enemy'+i].position.x += 0.02;
+							
+						};
+						if (window['directionenemy'+i]==4){
+							window['enemy'+i].position.z -= 0.4;
+							window['enemy'+i].position.x -= 0.02;
+							
+						};
+						window['enemy_a'+i].rotation.y= controls.getObject().rotation.y;
+						window['enemy'+i].rotation.y= controls.getObject().rotation.y;
+					};
+					//
+					
+					controls.getObject().translateX( velocity.x * delta );
+					controls.getObject().translateY( velocity.y * delta );
+					controls.getObject().translateZ( velocity.z * delta );
+
+					if ( controls.getObject().position.y <10) {
+						velocity.y = 0;
+						controls.getObject().position.y = 10;
+						canJump=true;
+					}	
+					prevTime = time;
+					
+				}
+				
+				annie.update(1000 * delta);
+				annie2.update(1000 * delta);
+				annie3.update(1000 * delta);
+				annie4.update(1000 * delta);
+				renderer.render( scene, camera );
+				
+			}
+			function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDuration) 
+{   
+    // note: texture passed by reference, will be updated by the update function.
+
+    this.tilesHorizontal = tilesHoriz;
+    this.tilesVertical = tilesVert;
+
+    // how many images does this spritesheet contain?
+    //  usually equals tilesHoriz * tilesVert, but not necessarily,
+    //  if there at blank tiles at the bottom of the spritesheet. 
+    this.numberOfTiles = numTiles;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping; 
+    texture.repeat.set( 1 / this.tilesHorizontal, 1 / this.tilesVertical );
+
+    // how long should each image be displayed?
+    this.tileDisplayDuration = tileDispDuration;
+
+    // how long has the current image been displayed?
+    this.currentDisplayTime = 0;
+
+    // which image is currently being displayed?
+    this.currentTile = 0;
+
+    this.update = function( milliSec )
+    {
+        this.currentDisplayTime += milliSec;
+        while (this.currentDisplayTime > this.tileDisplayDuration)
+        {
+            this.currentDisplayTime -= this.tileDisplayDuration;
+            this.currentTile++;
+            if (this.currentTile == this.numberOfTiles)
+                this.currentTile = 0;
+            var currentColumn = this.currentTile % this.tilesHorizontal;
+            texture.offset.x = currentColumn / this.tilesHorizontal;
+            var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
+            texture.offset.y = currentRow / this.tilesVertical;
+        }
+    };
+}  
+		</script>
+	</body>
+</html>	

@@ -1,0 +1,48 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link rel="stylesheet" href="css/styles.css">
+		<link href="https://fonts.googleapis.com/css?family=Rubik+Mono+One" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Bree+Serif" rel="stylesheet">
+		<link rel="shortcut icon" href="img/logo.ico" />
+		<title>Login</title>
+	</head>
+	<style>
+		body{
+			background-image: url(img/main.gif);
+			background-size:cover;
+		}
+		.conteiner{
+			width: 500px;
+			margin: auto;
+		}
+		#rg{
+			margin: 50px auto;
+		}
+	</style>
+	<body id="ba">
+		<div class="conteiner">
+			<div id="logos"></div>
+			<img id="aaa" src="img/aaa.png">
+			<form id="rg" onsubmit="create_player(this)">
+				<p>Name:<br>
+				<input class="in" type="text"></p>
+				<input id="sb" type="submit" value="Go">
+			</form>
+		</div>
+	</body>
+	<script>
+		function create_player(e){
+			event.preventDefault();
+			let input_name = e.querySelectorAll(".in")[0].value;
+			localStorage.setItem("name",input_name);
+			localStorage.setItem("hp",1);
+			localStorage.setItem("speed",200);
+			localStorage.setItem("lvl",1);
+			localStorage.setItem("gold",0);
+			localStorage.setItem("boss",5);
+
+			window.location.href="game.html";
+		}
+	</script>
+</html>
